@@ -1,6 +1,8 @@
 # Race harness
 
-Measures one model on two inference hosts, alone and raced, on a made-up voice-agent call. Built for article 1 (hedge requests), with my own personal keys. The model and host pair is a preset in `bench.py`:
+Measures one model on two inference hosts, alone and raced, on a made-up voice-agent call. Built for article 1 (hedge requests), with my own personal keys.
+
+This is the private working copy. The public copy readers get is [bnhquang/llm-race-bench](https://github.com/bnhquang/llm-race-bench), a submodule at [articles/01-hedge-requests/llm-race-bench](../articles/01-hedge-requests/llm-race-bench/README.md): the same scripts without the Wafer preset or the AWS key loading, and only the DeepSeek inference.net + Together run. Change code here and there together, or copy it across. The model and host pair is a preset in `bench.py`:
 
 | Preset | Model | Hosts | Runs (in `results/`) |
 |---|---|---|---|

@@ -97,7 +97,7 @@ async def race(client, hosts, body, first_word_timeout=2.0):
 
 ## How I measured it
 
-I built a small benchmark, ran it with my own API keys, and put it [on GitHub](https://github.com/bnhquang/voice-agent-medium-blogs/tree/main/harness) so you can run it too.
+I built a small benchmark, ran it with my own API keys, and put it [on GitHub](https://github.com/bnhquang/llm-race-bench) so you can run it too.
 
 - **A made-up call shaped like a typical voice agent's.** A fictional solar installer ringing a homeowner, a 13,000-token prompt (instructions plus a generated knowledge base), 13 turns of history and eight caller lines that rotate as the latest turn.
 - **600 paired turns.** Each turn went to Together and inference.net at the same moment, and both were read to the end. So for every turn I know exactly what each provider would have done on its own, at the same moment.
@@ -200,4 +200,4 @@ If you do, three rules:
 
 If I had to sum it up: with an open-weights model, the provider decides your slow turns more than the model does. Racing two of them took my turns over a second from 1 in 43 to 1 in 300, didn't change the typical turn, and cost about a tenth of a US cent extra per ten-turn call.
 
-The benchmark is [on GitHub](https://github.com/bnhquang/voice-agent-medium-blogs/tree/main/harness) if you want to run it with your own keys. If you try it with other models or providers, I'd like to see what you get.
+The benchmark is [on GitHub](https://github.com/bnhquang/llm-race-bench) if you want to run it with your own keys. If you try it with other models or providers, I'd like to see what you get.

@@ -1,0 +1,3 @@
+[submodule "articles/01-hedge-requests/llm-race-bench"]
+	path = articles/01-hedge-requests/llm-race-bench
+	url = https://github.com/bnhquang/llm-race-bench.git
