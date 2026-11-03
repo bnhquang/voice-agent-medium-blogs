@@ -1,0 +1,42 @@
+{
+  "started": "2026-11-03T21:50:20.077491+11:00",
+  "where": "laptop, Sydney (home internet)",
+  "rounds": 600,
+  "preset": "minimax",
+  "body": {
+    "max_tokens": 80,
+    "temperature": 0.7,
+    "reasoning_effort": "none",
+    "tools": "end_call",
+    "stream_options": {
+      "include_usage": true
+    }
+  },
+  "hosts": {
+    "inference.net": {
+      "display": "inference.net",
+      "url": "https://api.inference.net/v1/chat/completions",
+      "model": "minimax-m3.1-flash",
+      "price": [
+        0.15,
+        0.015,
+        0.6
+      ]
+    },
+    "together": {
+      "display": "Together",
+      "url": "https://api.together.xyz/v1/chat/completions",
+      "model": "MiniMaxAI/MiniMax-M3.1-Flash",
+      "price": [
+        0.15,
+        0.015,
+        0.6
+      ]
+    }
+  },
+  "network_floor_ms": {
+    "inference.net": 402.2,
+    "together": 191.2
+  },
+  "finished": "2026-11-03T22:24:05.955747+11:00"
+}

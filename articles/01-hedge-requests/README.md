@@ -1,27 +1,16 @@
 # 1. Hedge requests
 
-**Working title:** Racing models on every turn: hedge requests for voice agents
+**Title:** Hedged Requests for LLMs: Cutting Tail Latency in Voice Agents
 
-## The idea
+Sending every voice-agent turn to the same model on two providers at once and using whichever speaks first. Built on Dean and Barroso's hedged requests ("The Tail at Scale", 2013), measured with my own benchmark and keys. Written as an independent experiment: nothing in the article comes from or points to my work.
 
-In a voice agent the caller feels the slowest turn, not the average one. A hedge request sends the same turn to more than one model or provider, uses whichever answers first and cancels the rest. It trades extra spend for a shorter tail on time to first token.
+| File | What it is |
+|---|---|
+| [article-v1.md](article-v1.md) | **The article, v1**, written as it would appear on Medium: title, subtitle, sections, figures with alt text and captions, code, results as code blocks (Medium has no tables) |
+| [images/](images/) | Figures 01 to 05 (PNG, 1,320 px wide). `make_figures.py` redraws them from the harness run |
+| [draft-v1.md](draft-v1.md) | The scaffold the article was written from: story settings (SEO title, description, slug, tags, publication), beats, and the pre-publish checklist |
+| [research-notes.md](research-notes.md) | The numbers and how they were measured |
 
-The term comes from Google's "The Tail at Scale" (Dean and Barroso, 2013): send the request to one replica, and if it has not answered by about the 95th percentile latency, send a second copy and take whichever finishes first.
+Numbers come from my own [harness](../../harness/README.md) (personal keys): DeepSeek V4.1 Flash 1017 on Together and inference.net, run 3 Nov 2026 23:03 to 23:33 from Sydney, 600 paired turns plus 600 live races (`harness/results/2026-11-03_sydney_deepseek_infnet`). The MiniMax M3.1 Flash run on the same two providers is only quoted for the "thinking off" point.
 
-## Questions to answer
-
-- Race every turn from the start, or only hedge once the first call is slower than its usual p95?
-- Same model on two providers, or two different models? If different, how much do the answers differ?
-- How much does it cut p50, p95 and p99 time to first token, and what does it cost per call?
-- Where else in the pipeline does it pay off: STT, LLM, TTS?
-- How do you cancel the losers cleanly mid-stream, and do you still pay for the tokens they already generated?
-
-## Research notes
-
-## Sources
-
-- Jeffrey Dean and Luiz Andre Barroso, "The Tail at Scale", Communications of the ACM, 2013.
-
-## Draft
-
-Not started.
+**Before publishing:** make the harness public on GitHub (the article links to `bnhquang/voice-agent-medium-blogs/tree/main/harness`), set the story settings from draft-v1.md, and run the playbook's pre-publish checklist.

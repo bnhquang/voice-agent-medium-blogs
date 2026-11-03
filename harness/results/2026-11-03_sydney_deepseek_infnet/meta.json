@@ -1,0 +1,45 @@
+{
+  "started": "2026-11-03T23:03:20.377554+11:00",
+  "where": "laptop, Sydney (home internet)",
+  "rounds": 600,
+  "preset": "deepseek-infnet",
+  "body": {
+    "max_tokens": 400,
+    "temperature": 0.7,
+    "reasoning_effort": "none",
+    "tools": "end_call",
+    "stream_options": {
+      "include_usage": true
+    },
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "hosts": {
+    "inference.net": {
+      "display": "inference.net",
+      "url": "https://api.inference.net/v1/chat/completions",
+      "model": "deepseek-v4.1-flash-1017",
+      "price": [
+        0.08,
+        0.008,
+        0.55
+      ]
+    },
+    "together": {
+      "display": "Together",
+      "url": "https://api.together.xyz/v1/chat/completions",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+      "price": [
+        0.3,
+        0.006,
+        1.2
+      ]
+    }
+  },
+  "network_floor_ms": {
+    "inference.net": 513.5,
+    "together": 186.8
+  },
+  "finished": "2026-11-03T23:33:04.765095+11:00"
+}

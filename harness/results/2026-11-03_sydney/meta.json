@@ -1,0 +1,29 @@
+{
+  "started": "2026-11-03T18:56:13.095375+11:00",
+  "where": "laptop, Sydney (home internet)",
+  "rounds": 600,
+  "hosts": {
+    "wafer": {
+      "url": "https://pass.wafer.ai/v1/chat/completions",
+      "model": "DeepSeek-V4.1-Flash-1017"
+    },
+    "together": {
+      "url": "https://api.together.xyz/v1/chat/completions",
+      "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017"
+    }
+  },
+  "body": {
+    "max_tokens": 80,
+    "temperature": 0.7,
+    "reasoning_effort": "none",
+    "tools": "end_call",
+    "stream_options": {
+      "include_usage": true
+    }
+  },
+  "network_floor_ms": {
+    "wafer": 162.7,
+    "together": 189.3
+  },
+  "finished": "2026-11-03T19:25:13.951067+11:00"
+}
