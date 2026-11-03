@@ -4,6 +4,8 @@ Where I write articles and do the research for my Medium posts on voice agents.
 
 Each post gets its own folder under `articles/`, numbered in the order I start them (`NN-short-slug`). A post's folder holds everything behind it: the draft, research notes, sources, and any test scripts, numbers or images.
 
+Drafts follow [andys_writing_style.md](andys_writing_style.md), so they sound like me.
+
 ## Articles
 
 | # | Folder | Topic | Status |
