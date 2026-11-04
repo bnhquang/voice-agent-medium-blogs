@@ -7,7 +7,7 @@ Sending every voice-agent turn to the same model on two providers at once and us
 | File | What it is |
 |---|---|
 | [article-v1.md](article-v1.md) | **The article, v1**, written as it would appear on Medium: title, subtitle, sections, figures with alt text and captions, code, results as code blocks (Medium has no tables) |
-| [images/](images/) | Figures 01 to 05 (PNG, 1,320 px wide). `make_figures.py` redraws them from the harness run |
+| [images/](images/) | Figures 01 to 05 (PNG, 1,440 px wide, the design system's Forest cream look in Geist). `make_figures.py` redraws them from the harness run; `fonts/` holds the Geist files it uses |
 | [draft-v1.md](draft-v1.md) | The scaffold the article was written from: story settings (SEO title, description, slug, tags, publication), beats, and the pre-publish checklist |
 | [research-notes.md](research-notes.md) | The numbers and how they were measured |
 | [llm-race-bench/](llm-race-bench/README.md) | **Submodule**: the public benchmark readers can run ([bnhquang/llm-race-bench](https://github.com/bnhquang/llm-race-bench)). Commit and push inside it first, then commit the pointer here |
