@@ -11,24 +11,22 @@ Then I sent every turn to both providers at once and kept whichever one started 
 
 ## Why the slow turns matter more than the average
 
-An LLM call in a voice agent has a particular shape. Every turn re-sends a long prompt (instructions, reference material and the conversation so far), often more than 10,000 tokens, which the provider caches. The reply is short, a sentence or two, and thinking is switched off because there's no time for it. Because DeepSeek V4.1 Flash has open weights, several companies serve the exact same model through their own APIs, which is what makes this experiment possible.
-
-I gave the model about 800 milliseconds to get its first words out. Much longer than that and the pause starts to feel wrong on a call, so that's the budget I measured against.
+For this experiment, the bar is for the model to get its first words out in about 800 milliseconds. Much longer than that and the pause starts to feel wrong on a call, so that's the budget I measured against.
 
 Two terms I'll use a lot:
 
-- **Time to first token**, or time to first word: how long from sending the turn until the model starts replying. I care even more about time to the **first whole sentence**, because that's when the voice can start speaking.
+- **Time to first token**, or time to first word: how long from sending the turn until the model starts replying.
 - **p50, p90, p99**: the time that 50%, 90% and 99% of turns come in under. p50 is the median, the typical turn. p99 is the slowest 1 in 100.
 
-The slow ones add up fast. If 1 in 43 turns is slow and a conversation runs ten turns, about 1 in 5 conversations hits at least one awkward pause (assuming turns are independent). On the slower provider it's closer to 3 in 5. Get slow turns down to 1 in 300 and that's about 1 conversation in 30. The median tells you nothing about the conversations people complain about.
+The reason we measure p90 and p99 is because the median tells you little about the user experience with the voice agent. Even if the agent pauses awkwardly 1 out of 10 turns, the user already notices and is annoyed.
 
-The other thing I learned: the same model can behave very differently from one provider to the next. In my tests, Together was quick on a typical turn, with a median of 332 ms, but every so often it stalled for three to five seconds. inference.net was slower on a typical turn, with a median of 613 ms, but it never stalled past 2.9 s. Same weights, different shape of slow.
+Imagine each conversation has 10 turns, and your p99 is 5 seconds, that means once every 10 calls, one callee gets a pause of 5 seconds, and that puts people off big time. In my opinion, this is one of the most suitable implementation of hedged requests, where latency matters a lot.
 
 ## The idea is from 2013
 
 None of this is new. In "[The Tail at Scale](https://cacm.acm.org/research/the-tail-at-scale/)" (2013), Jeff Dean and Luiz Barroso at Google describe the **hedged request**: send a request to one server, and if it hasn't answered within a short delay, send a copy to another server and use whichever answers first. It's like being stuck in a supermarket queue that's stopped moving, so you stand in the next queue over as well and go with whichever one gets you to the till first. Their example is a BigTable benchmark where hedging after a 10 ms delay cut the 99.9th-percentile latency from 1,800 ms to 74 ms while sending only 2% more requests.
 
-Others have tried this with LLMs. HOAi's post "[A simple fix for LLM tail latency](https://engineering.myhoai.com/posts/a-simple-fix-for-llm-tail-latency/)" (June 2026) sent every request twice on OpenAI's standard tier and found it beat paying for the priority tier. What I add here: two *different providers* serving the same open model, so you're covered when one provider has a bad moment, not only a slow server; a side-by-side test of racing every turn against hedging after a delay; and what it costs.
+Others have tried this with LLMs. HOAi's post "[A simple fix for LLM tail latency](https://engineering.myhoai.com/posts/a-simple-fix-for-llm-tail-latency/)" (June 2026) sent every request twice on OpenAI's standard tier and found it beat paying for the priority tier. When it comes to voice, you could set up two *different providers* serving the same open model, so you're covered when one provider has a bad moment.
 
 Frameworks don't do this for you yet, as far as I can tell. [Pipecat](https://github.com/pipecat-ai/pipecat), a popular open-source framework for voice agents, has service switchers, but they're built for failing over and picking a service. A slow reply isn't an error, so nothing switches.
 
@@ -41,11 +39,10 @@ The rules are simple:
 
 1. **Same model on both providers.** Not two different models. That way it doesn't matter who wins: the agent sounds the same and calls tools the same way. Two different models would give the caller a slightly different personality from turn to turn.
 2. **Both get the turn at the same moment.**
-3. **The winner is the first to send real words or a tool call.** Not the first byte. Some providers send an empty chunk or just the message role straight away, which would "win" and then leave you waiting.
+3. **The winner is the first to send real words or a tool call.** Need to differentiate that with the first byte. Some providers send an empty chunk or just the message role straight away, which would "win" and then leave you waiting.
 4. **The winner streams on to the voice. The other one is cancelled**, which closes its connection.
-5. **A provider that fails only loses that race.** I still log it against that provider, so a flaky one shows up. If both fail, fall back to whatever you'd normally do, such as a third provider or a different model.
-6. **Each racer gets a time limit for its first word**, so a provider that takes the connection and then sits there can't hold up the call.
-7. **Log which provider answered every reply.** You'll want it the first time something sounds off.
+5. **A provider that fails only loses that race.** I still log it against that provider, so a flaky one shows up.
+6. **Log which provider answered every reply.** You'll want it the first time something sounds off.
 
 The core of it, in Python with `httpx`. This exact code ran the 600 live races below.
 
@@ -104,9 +101,6 @@ I built a small benchmark, ran it with my own API keys, and put it [on GitHub](h
 - **600 live races** with the code above, interleaved with the paired turns.
 - **Two clocks:** first word and first whole sentence. A provider can send a word and then stall, and the voice can't start until it has a sentence.
 - **A fair race on paper.** For the paired turns, the winner is whoever sent the first real word, the same rule as the live race. Then I count *that* provider's first sentence. Taking whichever sentence happened to finish first would flatter the race.
-- **From my laptop in Sydney**, one evening (3 Nov 2026). Every number includes the trip to the US and back, about 190 ms to Together. A server sitting next to the providers would see lower medians. The tail comes from the providers, not the trip.
-
-Every reply hit the prompt cache, which is what you'd expect partway through a conversation, and neither provider did any thinking on any turn.
 
 ## Results
 
@@ -170,34 +164,12 @@ For a ten-turn call, that's about 0.25 US cents raced against about 0.12 cents f
 
 Next to speech-to-text, the voice and the phone line, this is small change. Doubling the cheapest item on the bill to fix the thing callers notice most looks like an easy trade to me.
 
-## What bit me
-
-**The winner can stall after it starts.** The race picks its winner at the first word, and from then on you're stuck with it. In the live races, the slowest first word took 1.2 s, but the slowest first sentence took 1.7 s: the winner started talking and then went quiet. A smarter race could switch providers if the winner stalls mid-sentence. I haven't built that yet.
-
-**Check that thinking is really off, on every provider.** DeepSeek was fine: neither provider thought on any of the 600 turns. But when I ran the same benchmark on MiniMax M3.1 Flash, Together honoured "thinking off" while inference.net ignored it and thought before answering on 63% of turns, which made it much slower. Same model, same request, different behaviour.
-
-**A cold cache is slow.** The very first request to inference.net, before its cache had the prompt, took 2.4 s to its first word, against about half a second once the cache was warm.
-
-**Time the right moment.** Start the clock when you send the turn and stop it at the first real token, not when the response headers arrive or at the first chunk. Headers can come back fast while the model is still thinking.
-
-**Every provider in the race sees every turn.** Check each one's data retention settings, not just your main provider's, because the defaults differ.
-
-**Rate limits.** Each provider now gets every request, so your request count on each one goes up.
-
-**Correlated slowness.** Two providers on the same cloud region can slow down together, and then racing them buys nothing. Check that their slow turns don't line up. In my run, only 3 of 600 did.
-
 ## Should you do it?
 
 I'd do it if you're building something real-time like voice, you've got a tight latency budget, and your model is on at least two independent providers. I'd skip it if your traffic is low enough that you'll never see the tail, your model only lives on one provider, or every fraction of a cent counts.
 
-If you do, three rules:
-
-1. Same model, two independent providers, called on their own APIs.
-2. The winner is the first to send real words or a tool call. Cancel the other one and log who won.
-3. Measure time to the first sentence and the p99, not the first byte and the median.
-
 ## Takeaways
 
-If I had to sum it up: with an open-weights model, the provider decides your slow turns more than the model does. Racing two of them took my turns over a second from 1 in 43 to 1 in 300, didn't change the typical turn, and cost about a tenth of a US cent extra per ten-turn call.
+If I had to sum it up: with an open-weights model, the provider decides your slow turns more than the model does. Racing two of them took my turns over a second from 1 in 43 to 1 in 300 and didn't change the typical turn.
 
 The benchmark is [on GitHub](https://github.com/bnhquang/llm-race-bench) if you want to run it with your own keys. If you try it with other models or providers, I'd like to see what you get.
