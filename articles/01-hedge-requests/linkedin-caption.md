@@ -14,6 +14,6 @@ Only caveat is, it does double (or triple, or quadruple, depending on how many c
 
 As far as I can tell, voice frameworks don't do this for you yet, so I open-sourced the benchmark and wrote up the code and the full breakdown in a Medium post: https://bnhquang.medium.com/hedged-requests-llm-voice-agent-latency-81682e044b12
 
-I reckon the next step is to build out a Livekit/Pipecat library for this?
+I reckon the next step is to build out a LiveKit/Pipecat library for this?
 
 #VoiceAI #LLM #AIEngineering
