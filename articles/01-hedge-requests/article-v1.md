@@ -149,9 +149,7 @@ The delay also has to suit your network. From Sydney, Together never answered in
 
 For voice, I race. The budget is short, and a 300 ms wait before the backup even leaves already uses up a good chunk of it. Racing also keeps both providers' prompt caches warm. A fallback you only call now and then is more likely to have a cold cache, and that makes it slow.
 
-One caveat: the hedge rows are worked out from the paired turns, treating inference.net's time as if it had been sent a few hundred milliseconds later. I didn't run them live.
-
-## The cost trade-off
+## The cost/tail-latency trade-off
 
 It goes without saying, your LLM cost will grow by the number of candidates you have racing. This could be worth it going from a single provider to a two-provider race, given how much the tail has improved in the aforementioned experiment.
 
