@@ -14,7 +14,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 from matplotlib.transforms import IdentityTransform
 from matplotlib.ticker import FuncFormatter
 import numpy as np
@@ -335,6 +335,65 @@ def cover(paired, live, hosts):
     plt.close(fig)
 
 
+def linkedin_picture(paired, hosts):
+    """The picture attached to the LinkedIn post: provider a alone, the hump everyone looks at and the tail that trips the
+    agent. Log x, square-root bar heights so a single slow turn still shows, and the cluster past 2.5 s (where the p99
+    sits) ringed. Same 1.91:1 full bleed as the cover."""
+    (a, _), _ = hosts
+    vals = np.array([v for v in (s.t(p[a], "sentence") for p in paired) if np.isfinite(v)])
+    p50 = s.stats(list(vals))["p50"]
+    W, H = 1440, 754
+    lo_ms, hi_ms = 230, 5600
+    x0, x1, base, top = 190, 1270, 575, 205  # plot box in pixels, y down
+    edges = np.geomspace(lo_ms, hi_ms, 49)
+    counts, _ = np.histogram(np.clip(vals, lo_ms, hi_ms * 0.999), edges)
+    px = lambda v: x0 + (np.log(v) - np.log(lo_ms)) / (np.log(hi_ms) - np.log(lo_ms)) * (x1 - x0)
+    hgt = lambda c: np.sqrt(c / counts.max()) * (base - top)
+    first_tail = int(np.searchsorted(edges, 2500))
+    fig = plt.figure(figsize=(W / DPI, H / DPI), dpi=DPI, facecolor=T["surface"])
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, W)
+    ax.set_ylim(H, 0)
+    ax.axis("off")
+    for i, (lo, hi, c) in enumerate(zip(edges[:-1], edges[1:], counts)):
+        if c:
+            ax.add_patch(FancyBboxPatch((px(lo) + 1.5, base - hgt(c)), px(hi) - px(lo) - 3, hgt(c), linewidth=0,
+                                        boxstyle="round,pad=0,rounding_size=4",
+                                        facecolor=T["race"] if i >= first_tail else T["faint"]))
+
+    ya = x0 - 40  # the y axis
+    ax.plot([ya, x1 + 30], [base + 2, base + 2], color=T["faint"], linewidth=3, solid_capstyle="round")
+    ax.plot([ya, ya], [base + 2, top - 15], color=T["faint"], linewidth=3, solid_capstyle="round")
+    for v, label in ((300, "0.3 s"), (1000, "1 s"), (3000, "3 s"), (5000, "5 s")):
+        ax.plot([px(v), px(v)], [base + 4, base + 14], color=T["faint"], linewidth=3, solid_capstyle="round")
+        ax.text(px(v), base + 48, label, color=T["ink2"], fontsize=17, ha="center", va="center")
+    ax.text((ya + x1 + 30) / 2, base + 112, "latency", color=T["ink2"], fontsize=21, fontweight=500, ha="center", va="center")
+    ax.text(ya, top - 48, "turns", color=T["ink2"], fontsize=21, fontweight=500, ha="center", va="center")
+
+    # an arrow to the median, and a marker-pen ring round the tail
+    tip = (px(p50) + 6, base - hgt(counts[np.searchsorted(edges, p50, side="right") - 1]) - 14)
+    lx, ly = 520, 262
+    for k, line in enumerate(("median makes you think", "your agent is doing well")):
+        ax.text(lx, ly + k * 38, line, color=T["ink2"], fontsize=25, fontweight=500, ha="left", va="center")
+    ax.add_patch(FancyArrowPatch((lx - 18, ly + 2), tip, connectionstyle="arc3,rad=0.32", arrowstyle="-|>",
+                                 mutation_scale=30, linewidth=3, color=T["ink2"], shrinkA=0, shrinkB=0,
+                                 capstyle="round", joinstyle="round"))
+    full = np.nonzero(counts)[0]
+    tx0, tx1 = px(edges[full[full >= first_tail][0]]), px(edges[full[-1] + 1])
+    cx, cy, ra, rb = (tx0 + tx1) / 2, base - 50, (tx1 - tx0) / 2 + 48, 68
+    t = np.linspace(-1.0, -1.0 + 2 * np.pi * 1.07, 400)  # starts and overlaps at the top right, clear of the bars
+    grow = 1 + 0.06 * (t - t[0]) / (t[-1] - t[0])
+    rx = ra * grow * (1 + 0.03 * np.sin(3 * t + 0.5)) * np.cos(t)
+    ry = rb * grow * (1 + 0.05 * np.sin(2 * t + 1.2)) * np.sin(t)
+    rot = np.radians(-4)
+    ax.plot(cx + rx * np.cos(rot) - ry * np.sin(rot), cy + rx * np.sin(rot) + ry * np.cos(rot), color=T["race"],
+            linewidth=6, solid_capstyle="round", solid_joinstyle="round")
+    ax.text(cx, cy - rb - 52, "what trips your agent", color=T["ink"], fontsize=30, fontweight=600, ha="center", va="center")
+    ax.text(W / 2, 78, "Voice Agent Tail Latency", color=T["ink"], fontsize=40, fontweight=600, ha="center", va="center")
+    fig.savefig(OUT.parent / "linkedin-post.png", dpi=DPI, facecolor=T["surface"])
+    plt.close(fig)
+
+
 def sheet(theme):
     """All five figures stacked on a white page, roughly as Medium shows them, to compare themes side by side."""
     from PIL import Image, ImageDraw, ImageFont
@@ -371,6 +430,7 @@ if __name__ == "__main__":
     pipeline(names, model)
     tradeoff(paired, names, prices)
     cover(paired, live, names)
+    linkedin_picture(paired, names)
     if args.sheet:
         sheet(args.theme)
     print("figures in", OUT)
