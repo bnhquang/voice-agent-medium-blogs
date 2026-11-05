@@ -1,8 +1,8 @@
-# 1. Hedge requests
+# 1. Redundant requests
 
-**Title:** Voice Agent Tail Latency: How Hedged Requests Cut Slow Turns by 7x
+**Title:** Voice Agent Tail Latency: How Redundant Requests Cut Slow Turns by 7x
 
-Sending every voice-agent turn to the same model on two providers at once and using whichever speaks first. Built on Dean and Barroso's hedged requests ("The Tail at Scale", 2013), measured with my own benchmark and keys. Written as an independent experiment: nothing in the article comes from or points to my work.
+Sending every voice-agent turn to the same model on two providers at once and using whichever speaks first: redundant requests (Vulimiri et al., "Low Latency via Redundancy", 2013). Compared with Dean and Barroso's hedged requests ("The Tail at Scale", 2013), which send the backup only after a delay. Measured with my own benchmark and keys. Written as an independent experiment: nothing in the article comes from or points to my work.
 
 | File | What it is |
 |---|---|

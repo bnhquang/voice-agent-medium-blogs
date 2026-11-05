@@ -1,10 +1,10 @@
-# Voice Agent Tail Latency: How Hedged Requests Cut Slow Turns by 7x
+# Voice Agent Tail Latency: How Redundant Requests Cut Slow Turns by 7x
 
 ### I sent each voice-agent turn to the same model on two providers and kept whichever streamed first. I measured p50, p90 and p99, and what it costs.
 
 ![Voice agent tail latency: 7x fewer slow turns and 4x shorter p99, from racing the same model on two providers.](images/00-cover.png)
 
-People are very good at taking turns in conversation. A study of ten languages found speakers everywhere keep the silence between turns short ([Stivers et al., 2009](https://pubmed.ncbi.nlm.nih.gov/19553212/)), so when a voice agent goes quiet for a couple of seconds, people notice. I wanted to know how often the language model is behind those pauses, and whether a trick Google described in 2013 could fix it. So I measured DeepSeek V4.1 Flash, an open-weights model that's quick enough for voice, on two providers that serve it, [Together](https://www.together.ai/) and [inference.net](https://inference.net/). Even the quicker of the two took over a second to reach the first full sentence on 2.3% of turns, and its slowest took 5 seconds.
+People are very good at taking turns in conversation. A study of ten languages found speakers everywhere keep the silence between turns short ([Stivers et al., 2009](https://pubmed.ncbi.nlm.nih.gov/19553212/)), so when a voice agent goes quiet for a couple of seconds, people notice. I wanted to know how often the language model is behind those pauses, and whether a trick from 2013 could fix it. So I measured DeepSeek V4.1 Flash, an open-weights model that's quick enough for voice, on two providers that serve it, [Together](https://www.together.ai/) and [inference.net](https://inference.net/). Even the quicker of the two took over a second to reach the first full sentence on 2.3% of turns, and its slowest took 5 seconds.
 
 Then I sent every turn to both providers at once and kept whichever one started talking first. Turns over a second dropped from 2.3% to 0.3%, and the worst case went from 5.0 s to 1.7 s. The median barely moved, and it didn't need to, since a typical turn was already quick.
 
@@ -20,11 +20,13 @@ Two terms I'll use a lot:
 
 In this article we care more about p90 and p99, the reason being because the median tells you little about the user experience with the voice agent. Even if the agent pauses awkwardly 1 out of 10 turns, the user already notices and is annoyed.
 
-Imagine each conversation has 10 turns, and your p99 is 5 seconds, that means once every 10 calls, one callee gets a pause of 5 seconds, and that puts people off big time. The solution to this is hedged requests: the moment you notice an api is slow, you send it to another server/provider so your eggs aren't all in one basket.
+Imagine each conversation has 10 turns, and your p99 is 5 seconds, that means once every 10 calls, one callee gets a pause of 5 seconds, and that puts people off big time. The solution to this is redundant requests: you send every turn to more than one server/provider at once, so your eggs aren't all in one basket.
 
 ## The idea is from 2013
 
 None of this is new. In "[The Tail at Scale](https://cacm.acm.org/research/the-tail-at-scale/)" (2013), Jeff Dean and Luiz Barroso at Google describe the **hedged request**: send a request to one server, and if it hasn't answered within a short delay, send a copy to another server and use whichever answers first. It's like being stuck in a supermarket queue that's stopped moving, so you stand in the next queue over as well and go with whichever one gets you to the till first. Their example is a BigTable benchmark where hedging after a 10 ms delay cut the 99.9th-percentile latency from 1,800 ms to 74 ms while sending only 2% more requests.
+
+Sending every request to more than one server from the start, with no wait at all, has its own name: **redundant requests**. In "[Low Latency via Redundancy](https://dl.acm.org/doi/10.1145/2535372.2535392)" (2013), Ashish Vulimiri and colleagues showed that sending the same request several times and using whichever answer comes back first cuts tail latency. That's what I tested here, with a hedge after a delay as the cheaper option to compare it against.
 
 Others have tried this with LLMs. HOAi's post "[A simple fix for LLM tail latency](https://engineering.myhoai.com/posts/a-simple-fix-for-llm-tail-latency/)" (June 2026) sent every request twice on OpenAI's standard tier and found it beat paying for the priority tier. When it comes to voice, you could set up two *different providers* serving the same open model, so you're covered when one provider has a bad moment.
 

@@ -6,7 +6,7 @@ That's tail latency, and it affects a good amount of calls no matter how fast yo
 
 The solution to this? Put your eggs in more baskets.
 
-Or in a more boring manner: hedged requests.
+Or in a more boring manner: redundant requests.
 
 Every turn goes to the same model on two providers at once. The first to start talking wins and the other gets cancelled, and because it's the same model, the agent sounds the same whoever wins.
 
