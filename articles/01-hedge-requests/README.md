@@ -1,6 +1,6 @@
 # 1. Hedge requests
 
-**Title:** Hedged Requests for LLMs: Cutting Tail Latency in Voice Agents
+**Title:** Voice Agent Tail Latency: How Hedged Requests Cut Slow Turns by 7x
 
 Sending every voice-agent turn to the same model on two providers at once and using whichever speaks first. Built on Dean and Barroso's hedged requests ("The Tail at Scale", 2013), measured with my own benchmark and keys. Written as an independent experiment: nothing in the article comes from or points to my work.
 

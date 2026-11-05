@@ -1,4 +1,4 @@
-# Hedged Requests for LLMs: Cutting Tail Latency in Voice Agents
+# Voice Agent Tail Latency: How Hedged Requests Cut Slow Turns by 7x
 
 ### I sent each voice-agent turn to the same model on two providers and kept whichever streamed first. I measured p50, p90 and p99, and what it costs.
 
