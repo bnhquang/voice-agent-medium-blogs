@@ -114,7 +114,7 @@ def race_series(paired, hosts):
 
 
 def tail(paired, hosts):
-    """Share of turns slower than x, on a log scale so 1 in 100 is visible."""
+    """Share of turns slower than x, on a log scale so 1% is visible."""
     series, colors = race_series(paired, hosts)
     fig = figure(12, 6.75)
     ax = fig.add_subplot()
@@ -131,7 +131,7 @@ def tail(paired, hosts):
     ax.set_ylim(1 / len(paired) * 0.8, 1.05)
     ax.set_yticks([y for y in (1, 0.1, 0.01, 0.001) if y >= 1 / len(paired)])
     ax.yaxis.set_minor_formatter(FuncFormatter(lambda *_: ""))
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"1 in {1 / y:,.0f}" if y < 1 else "every turn"))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{100 * y:g}%"))
     ms_axis(ax, [x for vals in series.values() for x in vals if np.isfinite(x)])
     ax.set_xlabel("Time to the first whole sentence")
     ax.set_ylabel("Share of turns slower than this")
@@ -259,12 +259,12 @@ def pipeline(hosts, model):
 
 
 def tradeoff(paired, hosts, prices):
-    """What each strategy costs against what it buys: turns over a second per 1,000, and US$ per 1,000 turns."""
+    """What each strategy costs against what it buys: % of turns over a second, and US$ per 1,000 turns."""
     (a, a_name), (b, b_name) = hosts
     n = len(paired)
     ca = sum(s.cost(p[a], prices[a]) for p in paired) / n
     cb = sum(s.cost(p[b], prices[b]) for p in paired) / n
-    slow = lambda vals: 1000 * sum(1 for v in vals if v > 1000) / n
+    slow = lambda vals: 100 * sum(1 for v in vals if v > 1000) / n
     points = [(f"{a_name} alone", ca, slow(s.t(p[a], "sentence") for p in paired), T["first"]),
               (f"{b_name} alone", cb, slow(s.t(p[b], "sentence") for p in paired), T["second"])]
     for d in (300, 400, 600):
@@ -277,9 +277,9 @@ def tradeoff(paired, hosts, prices):
     ax = fig.add_subplot()
     for name, c, sl, color in points:
         race = name.startswith("Race")
-        ax.scatter(1000 * c, max(sl, 0.8), s=170 if race else 130, color=color, edgecolor=T["surface"], linewidth=2.5, zorder=3)
+        ax.scatter(1000 * c, max(sl, 0.08), s=170 if race else 130, color=color, edgecolor=T["surface"], linewidth=2.5, zorder=3)
     ax.set_yscale("log")
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:g}"))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:g}%"))
     ax.yaxis.set_minor_formatter(FuncFormatter(lambda *_: ""))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"US${x:.2f}"))
     xs = [1000 * c for _, c, _, _ in points]
@@ -287,21 +287,21 @@ def tradeoff(paired, hosts, prices):
     step = 0.05
     ax.set_xticks([round(step * i, 2) for i in range(int(min(xs) * 0.45 / step) + 1, int(max(xs) * 1.3 / step) + 1)])
     ax.set_xlabel("Cost per 1,000 turns (list prices, 3 Nov 2026)")
-    ax.set_ylabel("Turns over 1 s, per 1,000 turns (log scale)")
+    ax.set_ylabel("Share of turns over 1 s (log scale)")
     ax.grid(True, color=T["grid"], linewidth=1)
     ax.get_ylim()  # settle the autoscaled limits, so the labels below can be measured in pixels
     placed = []
     for name, c, sl, color in sorted(points, key=lambda pt: -pt[2]):  # top first, so a crowded label moves down, not up
         left = name.endswith("alone")  # single providers labelled on the left, so they never sit on top of a hedge's label
         race = name.startswith("Race")
-        xy = (1000 * c, max(sl, 0.8))
+        xy = (1000 * c, max(sl, 0.08))
         px, py = ax.transData.transform(xy)
         low = any(side == left and abs(px - qx) < 260 and 0 < qy - py < 60 for qx, qy, side in placed)  # a label just above
         placed.append((px, py, left))
         dx, (dy_name, dy_value) = -12 if left else 12, (-6, -22) if low else (7, -9)
         ax.annotate(name, xy, xytext=(dx, dy_name), textcoords="offset points", va="center", ha="right" if left else "left",
                     color=T["ink"], fontsize=12, fontweight=600 if race else 500)
-        ax.annotate(f"{sl:,.0f} per 1,000", xy, xytext=(dx, dy_value), textcoords="offset points", va="center",
+        ax.annotate(f"{sl:.1f}%", xy, xytext=(dx, dy_value), textcoords="offset points", va="center",
                     ha="right" if left else "left", color=T["ink2"], fontsize=11)
     head = title(ax, "What each strategy costs, against the slow turns it leaves")
     save(fig, "05-tradeoff.png", head)

@@ -1,26 +1,24 @@
 # Hedged Requests for LLMs: Cutting Tail Latency in Voice Agents
 
-### I sent each voice-agent turn to the same model on two providers and kept whichever streamed first. Here are the p50, p90 and p99 numbers, and the bill.
+### I sent each voice-agent turn to the same model on two providers and kept whichever streamed first. I measured p50, p90 and p99, and what it costs.
 
-People are very good at taking turns in conversation. A study of ten languages found speakers everywhere keep the silence between turns short ([Stivers et al., 2009](https://pubmed.ncbi.nlm.nih.gov/19553212/)), so when a voice agent goes quiet for a couple of seconds, people notice. I wanted to know how often the language model is behind those pauses, and whether a trick Google described in 2013 could fix it. So I measured DeepSeek V4.1 Flash, an open-weights model that's quick enough for voice, on two providers that serve it, Together and inference.net. Even the quicker of the two took over a second to reach the first full sentence on 1 in 43 turns, and its slowest took 5 seconds.
+People are very good at taking turns in conversation. A study of ten languages found speakers everywhere keep the silence between turns short ([Stivers et al., 2009](https://pubmed.ncbi.nlm.nih.gov/19553212/)), so when a voice agent goes quiet for a couple of seconds, people notice. I wanted to know how often the language model is behind those pauses, and whether a trick Google described in 2013 could fix it. So I measured DeepSeek V4.1 Flash, an open-weights model that's quick enough for voice, on two providers that serve it, [Together](https://www.together.ai/) and [inference.net](https://inference.net/). Even the quicker of the two took over a second to reach the first full sentence on 2.3% of turns, and its slowest took 5 seconds.
 
-Then I sent every turn to both providers at once and kept whichever one started talking first. Turns over a second dropped from 1 in 43 to 1 in 300. The worst case went from 5.0 s to 1.7 s. The median barely moved, and that's fine, because the median was never the problem.
+Then I sent every turn to both providers at once and kept whichever one started talking first. Turns over a second dropped from 2.3% to 0.3%, and the worst case went from 5.0 s to 1.7 s. The median barely moved, and it didn't need to, since a typical turn was already quick.
 
 ![A chart of the share of turns slower than a given time, on log scales. Together alone has a tail out to 5 seconds and inference.net alone out to 2.9 seconds. The race drops away just past 1 second.](images/01-tail.png)
 *Share of turns slower than a given time, 600 turns. Each step down the y axis is ten times rarer. The race (green) drops away long before either provider does on its own.*
 
 ## Why the slow turns matter more than the average
 
-For this experiment, the bar is for the model to get its first words out in about 800 milliseconds. Much longer than that and the pause starts to feel wrong on a call, so that's the budget I measured against.
-
 Two terms I'll use a lot:
 
-- **Time to first token**, or time to first word: how long from sending the turn until the model starts replying.
+- **Time to first token (TTFT)**, or time to first word: how long from sending the turn until the model starts replying.
 - **p50, p90, p99**: the time that 50%, 90% and 99% of turns come in under. p50 is the median, the typical turn. p99 is the slowest 1 in 100.
 
-The reason we measure p90 and p99 is because the median tells you little about the user experience with the voice agent. Even if the agent pauses awkwardly 1 out of 10 turns, the user already notices and is annoyed.
+In this article we care more about p90 and p99, the reason being because the median tells you little about the user experience with the voice agent. Even if the agent pauses awkwardly 1 out of 10 turns, the user already notices and is annoyed.
 
-Imagine each conversation has 10 turns, and your p99 is 5 seconds, that means once every 10 calls, one callee gets a pause of 5 seconds, and that puts people off big time. In my opinion, this is one of the most suitable implementation of hedged requests, where latency matters a lot.
+Imagine each conversation has 10 turns, and your p99 is 5 seconds, that means once every 10 calls, one callee gets a pause of 5 seconds, and that puts people off big time. The solution to this is hedged requests: the moment you notice an api is slow, you send it to another server/provider so your eggs aren't all in one basket.
 
 ## The idea is from 2013
 
@@ -33,16 +31,16 @@ Frameworks don't do this for you yet, as far as I can tell. [Pipecat](https://gi
 ## How the race works
 
 ![A diagram of a voice agent: caller speaks, speech to text, then a race box where DeepSeek V4.1 Flash on Together and on inference.net both get the turn, then text to speech, then the caller hears the reply.](images/04-pipeline.png)
-*The race replaces one step of the pipeline. Everything before and after it stays the same.*
+*The race only replaces the language-model step of the pipeline.*
 
 The rules are simple:
 
-1. **Same model on both providers.** Not two different models. That way it doesn't matter who wins: the agent sounds the same and calls tools the same way. Two different models would give the caller a slightly different personality from turn to turn.
-2. **Both get the turn at the same moment.**
-3. **The winner is the first to send real words or a tool call.** Need to differentiate that with the first byte. Some providers send an empty chunk or just the message role straight away, which would "win" and then leave you waiting.
-4. **The winner streams on to the voice. The other one is cancelled**, which closes its connection.
-5. **A provider that fails only loses that race.** I still log it against that provider, so a flaky one shows up.
-6. **Log which provider answered every reply.** You'll want it the first time something sounds off.
+1. Same model on both providers. Then it doesn't matter who wins: the agent sounds the same and calls tools the same way. Two different models would give the caller a slightly different personality from turn to turn.
+2. Both get the turn at the same moment.
+3. The winner is the first to send real words or a tool call. Need to differentiate that with the first byte. Some providers send an empty chunk or just the message role straight away, which would "win" and then leave you waiting.
+4. The winner streams on to the voice. The other one is cancelled, which closes its connection.
+5. A provider that fails only loses that race. I still log it against that provider, so a flaky one shows up.
+6. Log which provider answered every reply. You'll want it the first time something sounds off.
 
 The core of it, in Python with `httpx`. This exact code ran the 600 live races below.
 
@@ -94,13 +92,13 @@ async def race(client, hosts, body, first_word_timeout=2.0):
 
 ## How I measured it
 
-I built a small benchmark, ran it with my own API keys, and put it [on GitHub](https://github.com/bnhquang/llm-race-bench) so you can run it too.
+I built a small benchmark, ran it with my own API keys, and put it [on GitHub](https://github.com/bnhquang/llm-race-bench) so you can run it too. The test call is made up, but shaped like a typical voice agent's: a fictional solar installer ringing a homeowner, with a 13,000-token prompt (instructions plus a generated knowledge base), 13 turns of history, and eight caller lines that take turns being the latest one.
 
-- **A made-up call shaped like a typical voice agent's.** A fictional solar installer ringing a homeowner, a 13,000-token prompt (instructions plus a generated knowledge base), 13 turns of history and eight caller lines that rotate as the latest turn.
-- **600 paired turns.** Each turn went to Together and inference.net at the same moment, and both were read to the end. So for every turn I know exactly what each provider would have done on its own, at the same moment.
-- **600 live races** with the code above, interleaved with the paired turns.
-- **Two clocks:** first word and first whole sentence. A provider can send a word and then stall, and the voice can't start until it has a sentence.
-- **A fair race on paper.** For the paired turns, the winner is whoever sent the first real word, the same rule as the live race. Then I count *that* provider's first sentence. Taking whichever sentence happened to finish first would flatter the race.
+I ran 600 paired turns. Each one went to Together and inference.net at the same moment, and I read both replies to the end, so for every turn I know exactly what each provider would have done on its own. Mixed in with those, I ran 600 live races with the code above.
+
+I timed two things: the first word and the first whole sentence. A provider can send a word and then stall, and the voice can't start until it has a sentence.
+
+To keep the paper race fair, the winner of each paired turn is whoever sent the first real word, the same rule as the live race, and then I count *that* provider's first sentence. Taking whichever sentence happened to finish first would flatter the race.
 
 ## Results
 
@@ -108,68 +106,57 @@ Time to the first whole sentence, in milliseconds, over 600 turns:
 
 ```
                        p50     p90     p99    worst   turns over 1 s
-Together alone         332     475   3,001    5,016   1 in 43
-inference.net alone    613     996   1,847    2,876   1 in 11
-Race (on paper)        332     475     834    1,847   1 in 200
-Race (live code)       337     480     788    1,739   1 in 300
+Together alone         332     475   3,001    5,016   2.3%
+inference.net alone    613     996   1,847    2,876   9.3%
+Race (on paper)        332     475     834    1,847   0.5%
+Race (live code)       337     480     788    1,739   0.3%
 ```
 
 ![Median, p90, p99 and worst turn for Together alone, inference.net alone and the race, on a log scale. The race's median matches Together's at 332 ms; its p99 is 834 ms against Together's 3,001 ms.](images/02-percentiles.png)
-*The median doesn't change. The slow end is where the race earns its keep.*
+*The median stays the same. The race earns its keep at the slow end.*
 
-What stood out to me:
+p50 stays at about 335 ms, because the race takes whoever starts first and that's usually Together, so adding a slower provider doesn't slow down a normal turn. p99 drops from 3,001 to under 850 ms, about four times shorter, and the worst turn goes from 5.0 s to 1.7 s.
 
-- **The median doesn't move, the slow end collapses.** p50 stays at about 335 ms, because Together already wins most turns. p99 drops from 3,001 to under 850 ms, about four times shorter, and the worst turn from 5.0 s to 1.7 s.
-- **The slower provider is the insurance.** inference.net won only 38 of the 600 live races. But of the 14 turns where Together took over a second, the race brought 11 back under a second. Only 3 of the 600 turns were slow on both providers at once.
-- **Racing a slower provider doesn't cost you on a normal turn.** The race takes whoever starts first, so on a typical turn you still get Together's speed.
-- **The live race landed close to the paper version**, 2 turns over a second instead of 3, even though the live races ran at slightly different moments from the paired turns.
+inference.net won only 6% of the live races, but it's the one that fixed the slow turns. Together took over a second on 2.3% of turns, and the race brought about 80% of those back under a second. Only 0.5% of turns were slow on both providers at once. The live race landed close to the paper version: 0.3% of turns over a second instead of 0.5%, even though the live races ran at slightly different moments from the paired turns.
 
 ## Race every turn, or hedge after a delay?
 
-The classic hedge waits a moment before sending the backup, which saves money. So I compared the two from the same 600 turns. Hedging means sending the turn to Together, and only sending it to inference.net if Together has no words after a set delay.
+The classic hedge waits a moment before sending the backup, which saves money. Here that means sending the turn to Together, and only sending it to inference.net as well if Together has no words after a set delay. I compared that with racing, using the same 600 turns.
 
 ```
                      backup sent   p50     p90     p99   turns over 1 s   US$ per 1,000 turns
-Together alone              0%     332     475   3,001         14              0.124
-Hedge after 600 ms          5%     332     475   1,216         14              0.130
-Hedge after 400 ms         11%     332     475   1,120         11              0.138
-Hedge after 300 ms         60%     332     475   1,035          7              0.198
-Race every turn           100%     332     475     834          3              0.247
+Together alone              0%     332     475   3,001       2.3%              0.124
+Hedge after 600 ms          5%     332     475   1,216       2.3%              0.130
+Hedge after 400 ms         11%     332     475   1,120       1.8%              0.138
+Hedge after 300 ms         60%     332     475   1,035       1.2%              0.198
+Race every turn           100%     332     475     834       0.5%              0.247
 ```
 
-![A scatter of cost per 1,000 turns against turns over 1 second per 1,000 turns. inference.net alone has 93 slow turns per 1,000 and Together alone 23. Hedging after 600, 400 and 300 ms sits in between. Racing every turn costs US$0.25 and has 5 slow turns per 1,000.](images/05-tradeoff.png)
+![A scatter of cost per 1,000 turns against the share of turns over 1 second. inference.net alone leaves 9.3% of turns slow and Together alone 2.3%. Hedging after 600, 400 and 300 ms sits in between. Racing every turn costs US$0.25 and leaves 0.5%.](images/05-tradeoff.png)
 *Each strategy's cost against the slow turns it leaves behind. Racing is the most expensive and leaves the fewest slow turns.*
 
-Racing every turn came out ahead on the slow end. Hedging after 300 ms is a fair middle ground: about 80% of the race's cost, but 7 slow turns instead of 3.
+Racing every turn came out ahead on the slow end. Hedging after 300 ms is a fair middle ground: about 80% of the race's cost, but 1.2% of turns slow instead of 0.5%.
 
-Hedging late barely helps. After 600 ms the backup went out on 5% of turns, and the number of turns over a second didn't change at all. A backup sent at 600 ms still needs its own half a second or so to answer, so by the time it does, you're past a second anyway.
+Hedging late barely helps. After 600 ms the backup went out on 5% of turns, and the share of turns over a second didn't change at all. A backup sent at 600 ms still needs its own half a second or so to answer, so by the time it does, you're past a second anyway.
 
 The delay also has to suit your network. From Sydney, Together never answered inside 200 ms, so hedging at 100 or 200 ms sends the backup on every single turn. That costs the same as racing and does slightly worse.
 
-For voice, I race. The budget is short, and a 300 ms wait before the backup even leaves already uses up a good chunk of it. Racing also keeps both providers' prompt caches warm. A fallback you only call now and then is more likely to be cold, and as you'll see below, a cold cache is slow.
+For voice, I race. The budget is short, and a 300 ms wait before the backup even leaves already uses up a good chunk of it. Racing also keeps both providers' prompt caches warm. A fallback you only call now and then is more likely to have a cold cache, and that makes it slow.
 
 One caveat: the hedge rows are worked out from the paired turns, treating inference.net's time as if it had been sent a few hundred milliseconds later. I didn't run them live.
 
-## What it costs
+## The cost trade-off
 
-You pay both providers on every turn, loser included. Every racer reads the full 13,000-token prompt whether it wins or not.
+It goes without saying, your LLM cost will grow by the number of candidates you have racing. This could be worth it going from a single provider to a two-provider race, given how much the tail has improved in the aforementioned experiment.
 
-At each provider's list price on 3 Nov 2026 (US$ per million tokens: Together 0.30 in, 0.006 cached, 1.20 out; inference.net 0.08 in, 0.008 cached, 0.55 out), that comes to:
-
-- Together alone: US$0.124 per 1,000 turns
-- inference.net alone: US$0.123 per 1,000 turns
-- Racing both: US$0.247 per 1,000 turns
-
-For a ten-turn call, that's about 0.25 US cents raced against about 0.12 cents for one provider. These numbers bill the cancelled reply in full, so they're the worst case. Whether a provider stops billing when you close the stream is up to them, and I haven't measured it.
-
-Next to speech-to-text, the voice and the phone line, this is small change. Doubling the cheapest item on the bill to fix the thing callers notice most looks like an easy trade to me.
+However, each provider you add pays back less than the one before it. For example, adding inference.net next to Together took the turns over a second from 2.3% to 0.5%. A third provider could only ever fix that last 0.5%, and your bill is now 3x what it was.
 
 ## Should you do it?
 
-I'd do it if you're building something real-time like voice, you've got a tight latency budget, and your model is on at least two independent providers. I'd skip it if your traffic is low enough that you'll never see the tail, your model only lives on one provider, or every fraction of a cent counts.
+For voice I'd do it, as long as your model is on at least two independent providers. I'd skip it if your traffic is too low to ever hit the tail, or if the model you're using is crazy expensive.
 
 ## Takeaways
 
-If I had to sum it up: with an open-weights model, the provider decides your slow turns more than the model does. Racing two of them took my turns over a second from 1 in 43 to 1 in 300 and didn't change the typical turn.
+The main thing I learned is that with an open-weights model, your slow turns come from the provider more than the model. Racing two providers took my turns over a second from 2.3% to 0.3%, and the typical turn stayed the same.
 
 The benchmark is [on GitHub](https://github.com/bnhquang/llm-race-bench) if you want to run it with your own keys. If you try it with other models or providers, I'd like to see what you get.
