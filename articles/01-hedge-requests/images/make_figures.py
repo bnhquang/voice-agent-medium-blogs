@@ -388,7 +388,7 @@ def linkedin_picture(paired, hosts):
     rot = np.radians(-4)
     ax.plot(cx + rx * np.cos(rot) - ry * np.sin(rot), cy + rx * np.sin(rot) + ry * np.cos(rot), color=T["race"],
             linewidth=6, solid_capstyle="round", solid_joinstyle="round")
-    ax.text(cx, cy - rb - 52, "what trips your agent", color=T["ink"], fontsize=30, fontweight=600, ha="center", va="center")
+    ax.text(cx, cy - rb - 52, "this is what trips it", color=T["ink"], fontsize=30, fontweight=600, ha="center", va="center")
     ax.text(W / 2, 78, "Voice Agent Tail Latency", color=T["ink"], fontsize=40, fontweight=600, ha="center", va="center")
     fig.savefig(OUT.parent / "linkedin-post.png", dpi=DPI, facecolor=T["surface"])
     plt.close(fig)
