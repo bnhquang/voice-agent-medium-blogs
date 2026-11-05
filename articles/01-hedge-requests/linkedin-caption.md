@@ -4,9 +4,7 @@ In a voice call, you can have your turn latency mostly low, but people notice th
 
 That's tail latency, and it affects a good amount of calls no matter how fast your model inherently is.
 
-The solution to this? Put your eggs in more baskets.
-
-Or in a more technical manner: redundant requests.
+The solution to this? Put your eggs in more baskets, or in other words, send redundant requests.
 
 Every turn goes to the same model on two providers at once. The first to start talking wins and the other gets cancelled, and because it's the same model, the agent sounds the same whoever wins.
 

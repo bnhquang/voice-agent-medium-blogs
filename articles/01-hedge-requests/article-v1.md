@@ -2,7 +2,7 @@
 
 ### I sent each voice-agent turn to the same model on two providers and kept whichever streamed first. I measured p50, p90 and p99, and what it costs.
 
-![Voice agent tail latency: 7x fewer slow turns and 4x shorter p99, from racing the same model on two providers.](images/00-cover.png)
+![Voice Agent Tail Latency: a histogram of 600 voice agent turns, latency against number of turns. Most turns bunch up around 0.3 s, with an arrow and the words 'median makes you think your agent is doing well'. A few turns sit far out at 3 to 5 s, circled and labelled 'this is what trips it'.](linkedin-post.png)
 
 People are very good at taking turns in conversation. A study of ten languages found speakers everywhere keep the silence between turns short ([Stivers et al., 2009](https://pubmed.ncbi.nlm.nih.gov/19553212/)), so when a voice agent goes quiet for a couple of seconds, people notice. I wanted to know how often the language model is behind those pauses, and whether redundant requests, a trick from [Vulimiri et al., 2013](https://dl.acm.org/doi/10.1145/2535372.2535392), could fix it. So I measured DeepSeek V4.1 Flash, an open-weights model that's quick enough for voice, on two providers that serve it, [Together](https://www.together.ai/) and [inference.net](https://inference.net/). Even the quicker of the two took over a second to reach the first full sentence on 2.3% of turns, and its slowest took 5 seconds.
 
