@@ -307,6 +307,34 @@ def tradeoff(paired, hosts, prices):
     save(fig, "05-tradeoff.png", head)
 
 
+def cover(paired, live, hosts):
+    """The cover and link-preview image: 7x fewer turns over a second and 4x shorter p99, each provider-a-alone against the
+    live race. Full bleed at 1.91:1 (no card on white), the shape LinkedIn, X and Slack crop link cards to."""
+    (a, _), _ = hosts
+    alone, raced = [s.t(p[a], "sentence") for p in paired], [r["sentence"] for r in live]
+    slow = lambda vals: sum(1 for v in vals if v > 1000) / len(vals)
+    stats = [(f"{slow(alone) / slow(raced):.0f}x", "fewer slow turns"),
+             (f"{s.stats(alone)['p99'] / s.stats(raced)['p99']:.0f}x", "shorter p99")]
+    W, H = 1440, 754
+    fig = plt.figure(figsize=(W / DPI, H / DPI), dpi=DPI, facecolor=T["surface"])
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, W)
+    ax.set_ylim(H, 0)  # pixels, y down
+    ax.axis("off")
+    ax.text(W / 2, 96, "VOICE AGENT TAIL LATENCY", color=T["ink2"], fontsize=15, fontweight=500, ha="center", va="center")
+    rng = np.random.default_rng(11)  # a quiet waveform along the bottom
+    xs = np.arange(0, W + 10, 12)
+    env = 0.55 + 0.45 * np.sin(np.linspace(0, 7, len(xs)) + 11) * np.sin(np.linspace(0, 2.3, len(xs)))
+    for x, h in zip(xs, np.clip(np.abs(env) * rng.uniform(0.35, 1.0, len(xs)), 0.12, 1) * 70):
+        ax.plot([x, x], [684 - h / 2, 684 + h / 2], color=T["grid"], linewidth=4.2, solid_capstyle="round")
+    ax.plot([W / 2, W / 2], [200, 570], color=T["grid"], linewidth=2)
+    for cx, (big, label) in zip((W * 0.27, W * 0.73), stats):
+        ax.text(cx, 330, big, color=T["race"], fontsize=180, fontweight=600, ha="center", va="center")
+        ax.text(cx, 522, label, color=T["ink"], fontsize=34, fontweight=600, ha="center", va="center")
+    fig.savefig(OUT / "00-cover.png", dpi=DPI, facecolor=T["surface"])
+    plt.close(fig)
+
+
 def sheet(theme):
     """All five figures stacked on a white page, roughly as Medium shows them, to compare themes side by side."""
     from PIL import Image, ImageDraw, ImageFont
@@ -342,6 +370,7 @@ if __name__ == "__main__":
     timeline(paired, names)
     pipeline(names, model)
     tradeoff(paired, names, prices)
+    cover(paired, live, names)
     if args.sheet:
         sheet(args.theme)
     print("figures in", OUT)
