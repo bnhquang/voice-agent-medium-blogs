@@ -33,14 +33,16 @@ Frameworks don't do this for you yet, as far as I can tell. [Pipecat](https://gi
 ![A diagram of a voice agent: caller speaks, speech to text, then a race box where DeepSeek V4.1 Flash on Together and on inference.net both get the turn, then text to speech, then the caller hears the reply.](images/04-pipeline.png)
 *The race only replaces the language-model step of the pipeline.*
 
-The rules are simple:
+The idea is simple:
 
-1. Same model on both providers. Then it doesn't matter who wins: the agent sounds the same and calls tools the same way. Two different models would give the caller a slightly different personality from turn to turn.
-2. Both get the turn at the same moment.
-3. The winner is the first to send real words or a tool call. Need to differentiate that with the first byte. Some providers send an empty chunk or just the message role straight away, which would "win" and then leave you waiting.
-4. The winner streams on to the voice. The other one is cancelled, which closes its connection.
-5. A provider that fails only loses that race. I still log it against that provider, so a flaky one shows up.
-6. Log which provider answered every reply. You'll want it the first time something sounds off.
+1. Send the same request to two providers on every turn.
+2. Take whichever one comes back first.
+
+A few caveats:
+
+- **Use the same model on both.** Otherwise the agent's personality changes depending on who wins.
+- **Cancel the other one as soon as one comes back.** That closes its connection, so it stops writing a reply nobody will hear.
+- **Log which provider answered.** The first time a reply sounds off, you'll want to know who wrote it.
 
 The core of it, in Python with `httpx`. This exact code ran the 600 live races below.
 
