@@ -49,6 +49,7 @@ These come straight from what I asked to change in drafts:
 - **Explain simply, no jargon.** "can you explain simply what ... is", "i don't really get what promptfoo do can you explain simply i just dont see its value".
 - **Show, don't just report.** I judge a change by reading what actually happened (real transcripts, simulated calls, a quick HTML mock), not by a table of numbers. "visualise it to me using actual html and i will see if i like it."
 - **Lean.** No captions that restate the obvious, no two numbers saying the same thing, nothing that "doesn't do anything".
+- **Fewest steps, then caveats.** A process gets only its core steps (often two), and everything else becomes a short caveat with a one-line why. "too many steps: just say 1 send the same request to two providers 2 get the first one that comes back. some caveats: ..."
 - **Specific, not generic.** "if we just say studio it sounds generic, i want something specific."
 - **Labels and wording matter.** I'll stop on one word that's wrong ("the hell is application submitted", "this footnote is wrong though should phrase it some other way").
 
